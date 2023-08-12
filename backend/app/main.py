@@ -10,7 +10,7 @@ from backend.app.predictor import predict_time_to_desired_rating
 from backend.app.suggestion_api import user_based_collaborative_filtering
 
 
-def create_app(database_url):
+def create_app(database_url=DATABASE_CONNECTION_URL):
     # creating the Flask app
     app = Flask(__name__)
 
