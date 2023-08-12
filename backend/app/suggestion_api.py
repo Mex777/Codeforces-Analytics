@@ -8,7 +8,6 @@ from backend.app.models.models import User, Problem
 
 
 def user_based_collaborative_filtering(handle):
-
     target_user_db_object = db.session.execute(db.select(User).where(User.handle == handle)).scalar()
     if target_user_db_object is None:
         target_user_db_object = add_user_to_db(handle)
@@ -16,7 +15,6 @@ def user_based_collaborative_filtering(handle):
     target_solved_problems = [problem.id for problem in target_user_db_object.solved_problems]
     users = db.session.execute(db.select(User).where(
         (User.handle != handle) & ((target_user_db_object.rating + 200) >= User.rating) & (User.rating >= (target_user_db_object.rating - 200))).limit(5000)).scalars()
-
 
     # Step 1: Calculate implicit user similarity
     similarities = {}

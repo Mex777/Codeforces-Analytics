@@ -7,7 +7,6 @@ from backend.app.models.models import User, Problem, Tag, Contest, RatingChange
 from backend.app.extensions import db
 
 
-# returns a list with the solved problems of the user
 def get_user_solved_problems(handle):
     response = requests.get(f"https://codeforces.com/api/user.status?handle={handle}").json()
     solved_problems = set()
@@ -15,19 +14,29 @@ def get_user_solved_problems(handle):
     # going through each submission of the current user
     for submission in response["result"]:
         # if the user has solved the problem and the problem was part of a contest
-        if submission["verdict"] == "OK" and "contestId" in submission.keys():
+        if submission["verdict"] == "OK" and "contestId" in submission.keys() and "rating" in submission["problem"].keys():
             # the problem ID is the concatenation between the contestID of the problem, and it's index
             problem_id = str(submission["contestId"]) + submission["problem"]["index"]
+
             problem_object = db.session.execute(db.select(Problem).where(Problem.id == problem_id)).scalar()
-            if problem_object is not None:
-                solved_problems.add(problem_object)
+            if problem_object is None:
+                problem_object = add_problem_to_db(submission["problem"])
+
+            solved_problems.add(problem_object)
 
     return list(solved_problems)
 
 
 def add_user_to_db(handle, user_json=None):
     if user_json is None:
-        user_json = requests.get(f"https://codeforces.com/api/user.info?handles={handle}").json()
+        request = requests.get(f"https://codeforces.com/api/user.info?handles={handle}")
+        print(request.json())
+        if request.status_code != 200:
+            raise RuntimeError("Codeforces not available")
+
+        user_json = request.json()
+        if user_json["status"] == "FAILED":
+            raise NameError("User not found")
         user_json = user_json["result"][0]
 
     rating = user_json["rating"]
@@ -44,6 +53,60 @@ def add_user_to_db(handle, user_json=None):
     return user_object
 
 
+def add_problem_to_db(problem_json):
+    problem_id = str(problem_json["contestId"]) + problem_json["index"]
+
+    if "rating" not in problem_json.keys():
+        return
+
+    problem_rating = problem_json["rating"]
+    problem_tags = problem_json["tags"]
+
+    problem_obj = Problem(problem_id, problem_json["name"], problem_rating)
+    db.session.add(problem_obj)
+
+    # Populating the tags
+    for curr_tag in problem_tags:
+        existing_tag = db.session.execute(db.select(Tag).where(Tag.name == curr_tag)).scalar()
+        # if the current tag is not in the database we add it
+        if existing_tag is None:
+            tag_obj = Tag(curr_tag)
+            db.session.add(tag_obj)
+        else:
+            tag_obj = existing_tag
+
+        # we add the current tag to the problem
+        if tag_obj not in problem_obj.tags:
+            problem_obj.tags.append(tag_obj)
+
+    db.session.commit()
+    return problem_obj
+
+
+def add_contest_to_db(contest_json):
+    if (contest_json["type"] == "CF" and contest_json["phase"] == "FINISHED") is False:
+        return
+
+    date = datetime.fromtimestamp(int(contest_json["startTimeSeconds"]))
+    contest_obj = Contest(int(contest_json["id"]), contest_json["name"], date)
+    db.session.add(contest_obj)
+
+    # adding the rating changes
+    resp = requests.get(f"https://codeforces.com/api/contest.ratingChanges?contestId={contest_obj.id}").json()
+    for rating_change_obj in resp["result"]:
+        handle = rating_change_obj["handle"]
+        old_rating = rating_change_obj["oldRating"]
+        new_rating = rating_change_obj["newRating"]
+
+        user_obj = db.session.execute(db.select(User).where(User.handle == handle)).scalar()
+        if user_obj is None:
+            add_user_to_db(handle)
+
+        rating_change = RatingChange(handle, contest_obj.id, old_rating, new_rating)
+        db.session.add(rating_change)
+
+    db.session.commit()
+    return contest_obj
 
 
 def migrate_users():
@@ -82,70 +145,16 @@ def migrate_users():
 
 def migrate_problems():
     response = requests.get("https://codeforces.com/api/problemset.problems").json()
-    attributes = {}
 
     for problem in response["result"]["problems"]:
         problem_id = str(problem["contestId"]) + problem["index"]
-        if "rating" in problem.keys():
-            problem_rating = problem["rating"]
-            problem_tags = problem["tags"]
-
-            existing_problem = db.session.execute(db.select(Problem).where(Problem.id == problem_id)).scalar()
-            # if the problem is not in the database we add it
-            if existing_problem is None:
-                problem_obj = Problem(problem_id, problem["name"], problem_rating)
-                db.session.add(problem_obj)
-            else:
-                # !!!!!!!!!!!!!!!!!!!!!! change this logic
-                break
-                problem_obj = existing_problem
-
-            # Populating the tags
-            for curr_tag in problem_tags:
-                existing_tag = db.session.execute(db.select(Tag).where(Tag.name == curr_tag)).scalar()
-
-                # if the current tag is not in the database we add it
-                if existing_tag is None:
-                    tag_obj = Tag(curr_tag)
-                    db.session.add(tag_obj)
-                else:
-                    tag_obj = existing_tag
-
-                # we add the current tag to the problem
-                if tag_obj not in problem_obj.tags:
-                    problem_obj.tags.append(tag_obj)
-
-            db.session.commit()
-
-    return attributes
+        existing_problem = db.session.execute(db.select(Problem).where(Problem.id == problem_id)).scalar()
+        if existing_problem is None:
+            add_problem_to_db(problem)
 
 
 def migrate_contests():
     response = requests.get("https://codeforces.com/api/contest.list").json()
 
     for curr_contest in response["result"]:
-        if curr_contest["type"] == "CF" and curr_contest["phase"] == "FINISHED":
-            date = datetime.fromtimestamp(int(curr_contest["startTimeSeconds"]))
-
-            contest_obj = Contest(int(curr_contest["id"]), curr_contest["name"], date)
-            db.session.add(contest_obj)
-
-            # adding the rating changes
-            resp = requests.get(f"https://codeforces.com/api/contest.ratingChanges?contestId={contest_obj.id}").json()
-            for rating_change_obj in resp["result"]:
-                handle = rating_change_obj["handle"]
-                old_rating = rating_change_obj["oldRating"]
-                new_rating = rating_change_obj["newRating"]
-
-                user_obj = db.session.execute(db.select(User).where(User.handle == handle)).scalar()
-                if user_obj is None:
-                    user_obj = add_user_to_db(handle)
-
-                # user_obj.contests.append(contest_obj.id, {"old_rating": old_rating, "new_rating": new_rating})
-                rating_change = RatingChange(handle, contest_obj.id, old_rating, new_rating)
-                db.session.add(rating_change)
-
-            db.session.commit()
-
-
-
+        add_contest_to_db(curr_contest)
