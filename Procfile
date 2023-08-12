@@ -1,1 +1,1 @@
-web gunicorn 'backend.app.main:create_app()'
+web gunicorn 'backend.app.app:create_app()'
