@@ -30,7 +30,6 @@ def get_user_solved_problems(handle):
 def add_user_to_db(handle, user_json=None):
     if user_json is None:
         request = requests.get(f"https://codeforces.com/api/user.info?handles={handle}")
-        print(request.json())
         if request.status_code != 200:
             raise RuntimeError("Codeforces not available")
 
@@ -100,6 +99,7 @@ def add_contest_to_db(contest_json):
 
         user_obj = db.session.execute(db.select(User).where(User.handle == handle)).scalar()
         if user_obj is None:
+            time.sleep(1)
             add_user_to_db(handle)
 
         rating_change = RatingChange(handle, contest_obj.id, old_rating, new_rating)
@@ -110,7 +110,7 @@ def add_contest_to_db(contest_json):
 
 
 def migrate_users():
-    response = requests.get("https://codeforces.com/api/user.ratedList?activeOnly=true&includeRetired=false")
+    response = requests.get("https://codeforces.com/api/user.ratedList?activeOnly=true&includeRetired=false").json()
     length = len(response["result"])
     # to delete, it helps to understand the progress
     cnt = 0
@@ -148,4 +148,7 @@ def migrate_contests():
     response = requests.get("https://codeforces.com/api/contest.list").json()
 
     for curr_contest in response["result"]:
-        add_contest_to_db(curr_contest)
+        contest_obj = db.session.execute(db.select(Contest).where(Contest.id == curr_contest["id"])).scalar()
+        time.sleep(1)
+        if contest_obj is None:
+            add_contest_to_db(curr_contest)
