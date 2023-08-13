@@ -110,16 +110,7 @@ def add_contest_to_db(contest_json):
 
 
 def migrate_users():
-    # response = requests.get("https://codeforces.com/api/user.ratedList?activeOnly=true&includeRetired=false")
-
-    # response.raise_for_status()
-    # if response.status_code == 204:
-    #     return
-
-    # response = response.json()
-    with open("user.json", "r") as f:
-        response = json.load(f)
-
+    response = requests.get("https://codeforces.com/api/user.ratedList?activeOnly=true&includeRetired=false")
     length = len(response["result"])
     # to delete, it helps to understand the progress
     cnt = 0
