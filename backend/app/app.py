@@ -1,6 +1,6 @@
 import requests
 from flask import Flask, request
-from backend.app.config import DATABASE_CONNECTION_URL
+from backend.app.config import POSTGRES_CONNECTION_URL
 from backend.app.extensions import db
 from backend.app.models.models import User, Problem, Tag, Contest
 from backend.app.models.tables import problem_tags, user_solved_problems
@@ -10,7 +10,7 @@ from backend.app.predictor import predict_time_to_desired_rating
 from backend.app.suggestion_api import user_based_collaborative_filtering
 
 
-def create_app(database_url=DATABASE_CONNECTION_URL):
+def create_app(database_url=POSTGRES_CONNECTION_URL):
     # creating the Flask app
     app = Flask(__name__)
 
@@ -61,7 +61,7 @@ def create_app(database_url=DATABASE_CONNECTION_URL):
 
         problems = user_object.toDict()["solved_problems"]
 
-        return {"status": "SUCCESS", "problems_solved": problems}
+        return {"status": "SUCCESS", "problemPOSTGRESQL_DATABASE_CONNECTION_LINKs_solved": problems}
 
     @app.route("/users/<handle>", methods=["POST"])
     def user(handle):
@@ -82,16 +82,27 @@ def create_app(database_url=DATABASE_CONNECTION_URL):
         except:
             return "CODEFORCES NOT AVAILABLE", 500
 
+    @app.route("/migrate/problems")
+    def migrate_problems_route():
+        migrate_problems()
+        return "SUCCESS", 200
+
+    @app.route("/migrate/users")
+    def migrate_users_route():
+        migrate_users()
+        return "SUCCESS", 200
+
+    @app.route("/migrate/contests")
+    def migrate_contests_route():
+        migrate_contests()
+        return "SUCCESS", 200
+
+    with app.app_context():
+        db.create_all()
+
     return app
 
 
 if __name__ == "__main__":
     app = create_app(DATABASE_CONNECTION_URL)
-
-    with app.app_context():
-        db.create_all()
-        migrate_problems()
-        migrate_users()
-        migrate_contests()
-
     app.run()
