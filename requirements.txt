@@ -18,6 +18,7 @@ numpy==1.25.2
 packaging==23.1
 pluggy==1.2.0
 protobuf==4.21.12
+psycopg2-binary==2.9.7
 pytest==7.4.0
 python-dotenv==1.0.0
 PyYAML==6.0.1
