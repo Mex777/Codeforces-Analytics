@@ -127,6 +127,7 @@ def migrate_users():
     cnt = 0
     for curr_user in response["result"]:
         cnt += 1
+
         print(str(cnt) + " / " + str(length))
 
         handle = curr_user["handle"]

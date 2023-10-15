@@ -104,3 +104,4 @@ def create_app(database_url=POSTGRES_CONNECTION_URL):
 if __name__ == "__main__":
     app = create_app()
     app.run()
+
