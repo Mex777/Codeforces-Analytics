@@ -2,8 +2,7 @@ import requests
 from flask import Flask, request
 from backend.app.config import POSTGRES_CONNECTION_URL
 from backend.app.extensions import db
-from backend.app.models.models import User, Problem, Tag, Contest
-from backend.app.models.tables import problem_tags, user_solved_problems
+from backend.app.models.models import User
 from backend.app.db_population import migrate_problems, migrate_users, migrate_contests, add_user_to_db, \
     get_user_solved_problems
 from backend.app.predictor import predict_time_to_desired_rating
@@ -16,7 +15,6 @@ def create_app(database_url=POSTGRES_CONNECTION_URL):
 
     # configure the database
     app.config["SQLALCHEMY_DATABASE_URI"] = database_url
-    # app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite://"
     db.init_app(app)
 
     @app.route("/")
@@ -61,7 +59,7 @@ def create_app(database_url=POSTGRES_CONNECTION_URL):
 
         problems = user_object.toDict()["solved_problems"]
 
-        return {"status": "SUCCESS", "problemPOSTGRESQL_DATABASE_CONNECTION_LINKs_solved": problems}
+        return {"status": "SUCCESS", "problems_solved": problems}
 
     @app.route("/users/<handle>", methods=["POST"])
     def user(handle):
