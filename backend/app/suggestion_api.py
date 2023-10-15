@@ -16,7 +16,7 @@ def user_based_collaborative_filtering(handle):
     users = db.session.execute(db.select(User).where(
         (User.handle != handle) & ((target_user_db_object.rating + 200) >= User.rating) & (User.rating >= (target_user_db_object.rating - 200))).limit(5000)).scalars()
 
-    # Step 1: Calculate implicit user similarity
+    # Calculate implicit user similarity
     similarities = {}
     for user in users:
         solved_problems = user.solved_problems
@@ -26,10 +26,10 @@ def user_based_collaborative_filtering(handle):
         similarity = len(common_problems) / (len(solved_problems) + len(target_solved_problems) - len(common_problems))
         similarities[user.handle] = similarity
 
-    # Step 2: Identify nearest neighbors (similar users)
+    # Identify nearest neighbors (similar users)
     nearest_neighbors = sorted(similarities.items(), key=lambda x: x[1], reverse=True)[:20]
 
-    # Step 3: Aggregate weights from nearest neighbors' solved problems
+    # Aggregate weights from nearest neighbors' solved problems
     aggregated_weights = {}
     for neighbor, similarity in nearest_neighbors:
         neighbor_object = db.session.execute(db.select(User).where(User.handle == neighbor)).scalar()
@@ -38,11 +38,10 @@ def user_based_collaborative_filtering(handle):
                 aggregated_weights.setdefault(problem, 0)
                 aggregated_weights[problem] += similarity
 
-    # Step 4: Filter and rank recommended problems
-
+    # Filter and rank recommended problems
     recommended_problems = []
     for problem in aggregated_weights.keys():
-        if (target_user_db_object.rating - 400) < problem.rating < (target_user_db_object.rating + 400):
+        if (target_user_db_object.rating - 200) < problem.rating < (target_user_db_object.rating + 400):
             recommended_problems.append(problem)
 
             if len(recommended_problems) == 20:
