@@ -7,7 +7,7 @@ from backend.app.extensions import db
 from backend.app.models.models import User, Problem
 
 
-def user_based_collaborative_filtering(handle):
+def user_based_collaborative_filtering(handle, limit=20):
     target_user_db_object = db.session.execute(db.select(User).where(User.handle == handle)).scalar()
     if target_user_db_object is None:
         target_user_db_object = add_user_to_db(handle)
@@ -44,7 +44,7 @@ def user_based_collaborative_filtering(handle):
         if (target_user_db_object.rating - 200) < problem.rating < (target_user_db_object.rating + 400):
             recommended_problems.append(problem)
 
-            if len(recommended_problems) == 20:
+            if len(recommended_problems) == limit:
                 break
 
     recommended_problems = sorted(recommended_problems, key=lambda x: aggregated_weights[x], reverse=True)
