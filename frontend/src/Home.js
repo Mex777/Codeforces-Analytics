@@ -1,10 +1,9 @@
-import { redirect } from "react-router-dom";
 import "./App.css";
-import { useState } from "react";
 import Header from "./Reusables/Header";
 import SearchBar from "./Reusables/SearchBar";
 import Banner from "./Reusables/Banner";
 import UserReviews from "./Reusables/UserReviews";
+import RatingDistribution from "./Reusables/RatingDistribution";
 
 function Home() {
   return (
@@ -45,6 +44,13 @@ function Home() {
 
       <Banner content="User Reviews" />
       <UserReviews />
+
+      <Banner content="Unique insights" />
+      <div className="home-rating">
+        <div className="home-rating-ins">
+          <RatingDistribution />
+        </div>
+      </div>
     </>
   );
 }

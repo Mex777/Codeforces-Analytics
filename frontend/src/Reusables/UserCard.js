@@ -2,6 +2,8 @@ import { Doughnut } from "react-chartjs-2";
 import RecommendedProblems from "./RecommendedProblems";
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
 import { Colors } from "chart.js";
+import RatingDistribution from "./RatingDistribution";
+import ProblemsDistribution from "./ProblemsDistribution";
 
 ChartJS.register(ArcElement, Tooltip, Legend, Colors);
 
@@ -48,6 +50,8 @@ function UserCard({ user }) {
         </div>
       </div>
       <RecommendedProblems handle={user.handle} />
+      <RatingDistribution rating={user.rating} />
+      <ProblemsDistribution user={user} />
     </div>
   );
 }

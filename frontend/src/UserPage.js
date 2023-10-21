@@ -5,6 +5,7 @@ import Header from "./Reusables/Header";
 import SearchBar from "./Reusables/SearchBar";
 import React from "react";
 import UserCard from "./Reusables/UserCard";
+import NotFoundPicture from "./Misc/sad-face.png";
 
 function UserPage() {
   const params = useParams();
@@ -32,7 +33,7 @@ function UserPage() {
     };
 
     fetchData();
-  }, []);
+  }, [handle]);
 
   return (
     <>
@@ -49,7 +50,12 @@ function UserPage() {
       ) : (
         <>
           <SearchBar />
-          <h1>NOT FOUND</h1>
+          <div className="container">
+            <div className="user-card">
+              <h1>The user you searched for does not exist</h1>
+              <img src={NotFoundPicture} alt="User not found"></img>
+            </div>
+          </div>
         </>
       )}
     </>
