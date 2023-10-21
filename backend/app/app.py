@@ -1,6 +1,7 @@
 import requests
 from flask import Flask, request
 from backend.app.config import POSTGRES_CONNECTION_URL
+from backend.app.distributions import problems_distrib, rating_distrib
 from backend.app.extensions import db
 from backend.app.models.models import User
 from backend.app.db_population import migrate_problems, migrate_users, migrate_contests, add_user_to_db, \
@@ -24,7 +25,13 @@ def create_app(database_url=POSTGRES_CONNECTION_URL):
     @app.route("/recommend/<user>")
     def recommend(user):
         try:
-            recommended_problems = user_based_collaborative_filtering(user)
+            limit = 20
+            if "limit" in request.args.keys():
+                limit = request.args["limit"]
+
+            print(limit)
+
+            recommended_problems = user_based_collaborative_filtering(user, int(limit))
 
             return {
                 "status": "SUCCESS",
@@ -44,7 +51,7 @@ def create_app(database_url=POSTGRES_CONNECTION_URL):
                 "message": "You should provide a desired rating"
             }, 401
 
-        days = predict_time_to_desired_rating(handle, request.args["rating"])
+        days = predict_time_to_desired_rating(handle, int(request.args["rating"]))
         return {
             "status": "SUCCESS",
             "time_in_days": days
@@ -94,6 +101,16 @@ def create_app(database_url=POSTGRES_CONNECTION_URL):
     def migrate_contests_route():
         migrate_contests()
         return "SUCCESS", 200
+
+    @app.route("/distribution/rating")
+    def rating_distribution():
+        rating = rating_distrib()
+        return {"status": "SUCCESS", "distribution": rating}, 200
+
+    @app.route("/distribution/problems")
+    def problems_distribution():
+        distribute = problems_distrib()
+        return {"status": "SUCCESS", "distribution": distribute}, 200
 
     with app.app_context():
         db.create_all()
