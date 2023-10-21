@@ -1,3 +1,5 @@
+import time
+
 import requests
 
 from backend.app.extensions import db
@@ -11,7 +13,13 @@ def rating_distrib():
     if len(rating.keys()) > 0:
         return rating
 
-    response = requests.get("https://codeforces.com/api/user.ratedList?activeOnly=true&includeRetired=false").json()
+    response = requests.get("https://codeforces.com/api/user.ratedList?activeOnly=true&includeRetired=false")
+    while response.status_code != 200:
+        response = requests.get("https://codeforces.com/api/user.ratedList?activeOnly=true&includeRetired=false")
+        print(response.status_code)
+        time.sleep(1)
+    response = response.json()
+
     total = 0
     for curr_user in response["result"]:
         curr_rating = curr_user["rating"] - (curr_user["rating"] % 100)
@@ -36,15 +44,17 @@ def problems_distrib():
         return problems
 
     user_object = db.session.execute(db.select(User)).scalars().all()
+    total = 0
     for user in user_object:
         for solved_problem in user.solved_problems:
-            if solved_problem.rating not in rating.keys():
+            if solved_problem.rating not in problems.keys():
                 problems[solved_problem.rating] = 0
 
             problems[solved_problem.rating] += 1
+        total += 1
 
     for curr_rating in problems.keys():
-        problems[curr_rating] = (problems[curr_rating] + len(user_object) - 1) // len(user_object)
+        problems[curr_rating] = (problems[curr_rating] + total - 1) // total
 
     return problems
 
