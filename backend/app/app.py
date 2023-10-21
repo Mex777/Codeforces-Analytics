@@ -61,6 +61,14 @@ def create_app(database_url=POSTGRES_CONNECTION_URL):
 
         return {"status": "SUCCESS", "problems_solved": problems}
 
+    @app.route("/users/<handle>")
+    def user_get(handle):
+        user_object = db.session.execute(db.select(User).where(User.handle == handle)).scalar()
+        if user_object is None:
+            return {"status": "FAILED", "message": "User not found"}, 404
+
+        return {"status": "SUCCESS", "user": user_object.toDict()}
+
     @app.route("/users/<handle>", methods=["POST"])
     def user(handle):
         user_object = db.session.execute(db.select(User).where(User.handle == handle)).scalar()
