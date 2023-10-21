@@ -24,7 +24,7 @@ function RecommendedProblems({ handle }) {
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
-      const data = await fetch(`/recommend/${handle}`);
+      const data = await fetch(`/recommend/${handle}?limit=5`);
       const jsonData = await data.json();
 
       console.log(jsonData);
